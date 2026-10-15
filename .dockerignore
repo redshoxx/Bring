@@ -1,0 +1,9 @@
+node_modules
+.private
+mobile/android
+mobile/ios
+mobile/dist
+server/data
+releases
+.git
+deploy/.env

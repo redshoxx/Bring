@@ -1,0 +1,87 @@
+name: APK, SideStore IPA und Updates
+on:
+  push:
+    tags: ['v*.*.*']
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version, zum Beispiel 0.1.1 (ohne v)'
+        required: true
+permissions:
+  contents: read
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '24', cache: npm }
+      - run: npm ci
+      - run: npm test
+      - run: npm run typecheck
+  android:
+    needs: verify
+    runs-on: ubuntu-latest
+    env:
+      APP_VERSION: ${{ inputs.version || github.ref_name }}
+      BUILD_NUMBER: 100${{ github.run_number }}
+      EXPO_PUBLIC_API_URL: ${{ vars.API_URL }}
+      EXPO_PUBLIC_UPDATE_MANIFEST: https://github.com/${{ github.repository }}/releases/latest/download/update.json
+      EXPO_PUBLIC_SIDESTORE_SOURCE: https://github.com/${{ github.repository }}/releases/latest/download/sidestore.json
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '24', cache: npm }
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: '17' }
+      - uses: android-actions/setup-android@v3
+      - run: npm ci
+      - run: npx expo prebuild --platform android --clean --no-install
+        working-directory: mobile
+      - run: node scripts/android-build.mjs
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+      - uses: actions/upload-artifact@v4
+        with: { name: android, path: releases/Unser-Alltag.apk }
+  ios:
+    needs: verify
+    runs-on: macos-15
+    env:
+      APP_VERSION: ${{ inputs.version || github.ref_name }}
+      BUILD_NUMBER: 100${{ github.run_number }}
+      EXPO_PUBLIC_API_URL: ${{ vars.API_URL }}
+      EXPO_PUBLIC_UPDATE_MANIFEST: https://github.com/${{ github.repository }}/releases/latest/download/update.json
+      EXPO_PUBLIC_SIDESTORE_SOURCE: https://github.com/${{ github.repository }}/releases/latest/download/sidestore.json
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '24', cache: npm }
+      - run: npm ci
+      - run: bash scripts/ios-build.sh
+      - uses: actions/upload-artifact@v4
+        with: { name: ios, path: releases/Unser-Alltag.ipa }
+  publish:
+    needs: [android, ios]
+    runs-on: ubuntu-latest
+    permissions: { contents: write }
+    env:
+      GH_TOKEN: ${{ github.token }}
+      APP_VERSION: ${{ inputs.version || github.ref_name }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '24' }
+      - uses: actions/download-artifact@v4
+        with: { name: android, path: releases }
+      - uses: actions/download-artifact@v4
+        with: { name: ios, path: releases }
+      - run: node scripts/release-metadata.mjs
+      - name: Release mit beiden Installationsdateien veröffentlichen
+        shell: bash
+        run: |
+          release_version="${APP_VERSION#v}"
+          gh release create "v${release_version}" releases/Unser-Alltag.apk releases/Unser-Alltag.ipa releases/update.json releases/sidestore.json releases/icon.png --title "Unser Alltag ${release_version}" --generate-notes

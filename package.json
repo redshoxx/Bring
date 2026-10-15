@@ -1,0 +1,20 @@
+{
+  "name": "unser-alltag",
+  "private": true,
+  "version": "0.1.0",
+  "workspaces": [
+    "mobile",
+    "server"
+  ],
+  "scripts": {
+    "dev": "node scripts/preview.mjs",
+    "test": "npm --workspace server test",
+    "typecheck": "npm --workspace mobile run typecheck",
+    "android": "npm --workspace mobile run android",
+    "web": "npm --workspace mobile run web",
+    "api": "npm --workspace server run dev"
+  },
+  "devDependencies": {
+    "ajv": "^8.17.1"
+  }
+}

@@ -1,0 +1,14 @@
+import {readFileSync,writeFileSync,statSync,mkdirSync,copyFileSync} from 'node:fs';
+import {createHash} from 'node:crypto';
+const repository=process.env.GITHUB_REPOSITORY||process.argv[2];
+const version=(process.env.APP_VERSION||process.argv[3]||'0.1.0').replace(/^v/,'');
+if(!/^[\w.-]+\/[\w.-]+$/.test(repository||'')||!/^\d+\.\d+\.\d+$/.test(version))throw new Error('Aufruf: node scripts/release-metadata.mjs BENUTZER/REPO VERSION');
+const base=`https://github.com/${repository}/releases/download/v${version}`,latest=`https://github.com/${repository}/releases/latest/download`;
+const sha=file=>createHash('sha256').update(readFileSync(file)).digest('hex');
+mkdirSync('releases',{recursive:true});
+const notes=process.env.RELEASE_NOTES||'Verbesserungen für euren gemeinsamen Alltag.';
+writeFileSync('releases/update.json',JSON.stringify({version,notes,android:{url:`${base}/Unser-Alltag.apk`,sha256:sha('releases/Unser-Alltag.apk')},ios:{sourceUrl:`${latest}/sidestore.json`,url:`${base}/Unser-Alltag.ipa`}},null,2));
+const app={name:'Unser Alltag',bundleIdentifier:'at.unseralltag.app',developerName:repository.split('/')[0],localizedDescription:'Einkaufsliste, Aufgaben mit Erinnerungen und Wochenplan für euch beide. Private Bereiche mit eigenen Freigaben. Daten auf deinem eigenen VPS.',subtitle:'Euer Tag. Gut organisiert.',iconURL:`${latest}/icon.png`,tintColor:'45314F',version,versionDate:new Date().toISOString(),downloadURL:`${base}/Unser-Alltag.ipa`,size:statSync('releases/Unser-Alltag.ipa').size,versions:[{version,date:new Date().toISOString(),downloadURL:`${base}/Unser-Alltag.ipa`,localizedDescription:notes,size:statSync('releases/Unser-Alltag.ipa').size,minOSVersion:'15.1'}]};
+writeFileSync('releases/sidestore.json',JSON.stringify({name:'Unser Alltag',identifier:`${repository.replace('/','.')}.source`,sourceURL:`${latest}/sidestore.json`,apps:[app],news:[]},null,2));
+copyFileSync('mobile/assets/icon.png','releases/icon.png');
+console.log('Release-Metadaten für Android und SideStore erstellt.');

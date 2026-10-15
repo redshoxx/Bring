@@ -1,0 +1,1 @@
+{"name":"@alltag/server","version":"0.1.0","type":"module","private":true,"scripts":{"dev":"node --watch src/index.mjs","start":"node src/index.mjs","test":"node --test test/*.test.mjs"},"dependencies":{"express":"5.1.0","ws":"8.18.3","pg":"8.16.3","zod":"4.1.12","helmet":"8.1.0","express-rate-limit":"8.1.0"}}

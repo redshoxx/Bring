@@ -1,0 +1,44 @@
+services:
+  database:
+    image: postgres:17-bookworm
+    environment:
+      POSTGRES_USER: alltag
+      POSTGRES_DB: alltag
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD in .env setzen}
+    volumes: [database:/var/lib/postgresql/data]
+    restart: unless-stopped
+    healthcheck:
+      test: [CMD-SHELL, 'pg_isready -U alltag -d alltag']
+      interval: 5s
+      timeout: 3s
+      retries: 20
+  api:
+    build: { context: .., dockerfile: deploy/Dockerfile }
+    environment:
+      DATABASE_URL: postgresql://alltag:${DB_PASSWORD}@database:5432/alltag
+      TRUST_PROXY: '1'
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      IMAGE_MODEL: ${IMAGE_MODEL:-gpt-image-1}
+      CORS_ORIGINS: ${CORS_ORIGINS:-}
+    volumes: [app-data:/app/server/data]
+    depends_on:
+      database: { condition: service_healthy }
+    restart: unless-stopped
+    healthcheck:
+      test: [CMD, node, -e, "fetch('http://127.0.0.1:8080/health').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+  proxy:
+    image: caddy:2-alpine
+    ports: ['80:80', '443:443', '443:443/udp']
+    environment:
+      APP_DOMAIN: ${APP_DOMAIN:?APP_DOMAIN in .env setzen}
+    volumes: ['./Caddyfile:/etc/caddy/Caddyfile:ro', caddy-data:/data, caddy-config:/config]
+    depends_on: [api]
+    restart: unless-stopped
+volumes:
+  database:
+  app-data:
+  caddy-data:
+  caddy-config:

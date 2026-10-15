@@ -1,0 +1,11 @@
+import { mkdir } from 'node:fs/promises';
+import { database } from './db.mjs';
+import { createApp } from './app.mjs';
+const production=process.env.NODE_ENV==='production';
+if(production && !process.env.DATABASE_URL) throw new Error('DATABASE_URL ist in Produktion erforderlich.');
+await mkdir('./data',{recursive:true});
+const db=await database(process.env.DATABASE_URL, './data/development.sqlite');
+const instance=await createApp(db,{origins:process.env.CORS_ORIGINS,trustProxy:process.env.TRUST_PROXY==='1'?1:false,imageKey:process.env.OPENAI_API_KEY,imageModel:process.env.IMAGE_MODEL,imageDir:process.env.IMAGE_DIR});
+const port=Number(process.env.PORT||8080);
+instance.server.listen(port,'0.0.0.0',()=>console.log(`Unser Alltag API auf Port ${port} (${db.postgres?'PostgreSQL':'lokale SQLite-Entwicklung'})`));
+for(const signal of ['SIGINT','SIGTERM']) process.on(signal,async()=>{await instance.close();process.exit(0);});

@@ -1,0 +1,9 @@
+export type Kind = 'shopping' | 'task' | 'dinner' | 'takeaway' | 'pantry' | 'appointment' | 'expense' | 'saving';
+export type Ingredient = { title: string; quantity: string };
+export type ItemData = { title:string; quantity?:string; done?:boolean; date?:string; due?:string|null; reminder?:boolean; reminderMinutes?:number; assignee?:string|null; portions?:number; ingredients?:Ingredient[]; instructions?:string; preparation?:'cook'|'leftovers'|'ready'; imageId?:string|null; autoImage?:boolean; amount?:number; target?:number; category?:string; stock?:'available'|'low'|'empty' };
+export type Item = { id:string; owner:string; household:string; kind:Kind; visibility:'private'|'shared'; data:ItemData; rev:number; updated:number };
+export type Settings = { shares?:Partial<Record<Kind,boolean>>; enabled?:Partial<Record<Kind,boolean>>; cozy?:boolean; notifications?:boolean };
+export type User = { id:string; name:string; email:string; household:string; settings:Settings };
+export type Snapshot = { user:User; partner:{id:string;name:string}[]; items:Item[]; serverTime:number; imageGeneration:boolean };
+export const DEFAULT_SHARES: Record<Kind,boolean> = { shopping:true, task:true, dinner:true, takeaway:false, pantry:false, appointment:false, expense:false, saving:false };
+export const LABELS:Record<Kind,string> = { shopping:'Einkaufsliste',task:'Aufgaben',dinner:'Abendessen',takeaway:'Mitnehm-Essen',pantry:'Vorräte',appointment:'Termine',expense:'Ausgaben',saving:'Sparziele' };

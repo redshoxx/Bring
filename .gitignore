@@ -1,10 +1,12 @@
-.private/
 node_modules/
+.private/
+.env
+deploy/.env
+server/data/
+mobile/.expo/
+mobile/dist/
 mobile/android/
 mobile/ios/
-mobile/dist/
-mobile/.expo/
-server/data/
 releases/
-.env
 *.log
+.DS_Store
