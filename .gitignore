@@ -1,0 +1,10 @@
+.private/
+node_modules/
+mobile/android/
+mobile/ios/
+mobile/dist/
+mobile/.expo/
+server/data/
+releases/
+.env
+*.log
